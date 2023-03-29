@@ -1,0 +1,10 @@
+name: LyriaSeelenbindung
+version: '${project.version}'
+main: org.silvius.lyriaseelenbindung.LyriaSeelenbindung
+api-version: 1.19
+commands:
+  seelenbindung:
+    usage: /seelenbindung
+    aliases: []
+    description: gives an item with seelenbindung
+
