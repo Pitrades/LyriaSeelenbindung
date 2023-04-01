@@ -1,10 +1,8 @@
 package org.silvius.lyriaseelenbindung;
 
-import com.destroystokyo.paper.event.inventory.PrepareGrindstoneEvent;
 import com.destroystokyo.paper.event.inventory.PrepareResultEvent;
 import io.papermc.paper.enchantments.EnchantmentRarity;
 import net.kyori.adventure.text.Component;
-import org.bukkit.ChatColor;
 import org.bukkit.NamespacedKey;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.enchantments.EnchantmentTarget;
@@ -12,14 +10,13 @@ import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
-import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.inventory.PrepareAnvilEvent;
 import org.bukkit.inventory.EquipmentSlot;
-import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
@@ -30,7 +27,7 @@ import java.util.*;
 import static org.silvius.lyriaseelenbindung.LyriaSeelenbindung.econ;
 
 public class Seelenbindung extends Enchantment implements Listener {
-    double money = 1.05d;
+    double money = 100d;
 
     @EventHandler
     public void onPlayerDeath(PlayerDeathEvent event){
@@ -38,6 +35,7 @@ public class Seelenbindung extends Enchantment implements Listener {
         Player killer = null;
         List<ItemStack> droppedItems = event.getDrops();
         Collection<ItemStack> itemsToRemove = new java.util.ArrayList<>(Collections.emptyList());
+        boolean hadSeelenbindung = false;
         if (player.getLastDamageCause() instanceof EntityDamageByEntityEvent) {
             EntityDamageByEntityEvent dmgEvent = (EntityDamageByEntityEvent) player.getLastDamageCause();
             if (dmgEvent.getDamager() instanceof Player) {
@@ -46,32 +44,60 @@ public class Seelenbindung extends Enchantment implements Listener {
         for (int i=0; i<droppedItems.size(); i++){
             ItemStack item = droppedItems.get(i);
             if(item!=null && item.getItemMeta().hasEnchant(this)){
-                if(killer!=null){
-                    econ.depositPlayer(player.getKiller(), money);
-                    player.getKiller().sendMessage("Deinem Konto wurden Ð"+Double.toString(money)+" hinzugefügt");}
-
+                if(killer!=null) {
+                    hadSeelenbindung = true;
+                }
+                if(item.getItemMeta() instanceof Damageable){
+                    ItemMeta meta = item.getItemMeta();
+                    ((Damageable) meta).setDamage((int) Math.round(item.getType().getMaxDurability()*0.1));
+                    item.setItemMeta(meta);
+                }
                 event.getItemsToKeep().add(item);
                 itemsToRemove.add(item);
-                seelenbindungCommand.lowerSeelenbindungLevel(item);
+                SeelenbindungCommand.lowerSeelenbindungLevel(item);
             }
         }
         droppedItems.removeAll(itemsToRemove);
-    }
+        //Falls der Spieler Seelenbindung hatte und von einem Spieler getötet wurde: erhält Geld, xp
+        if(hadSeelenbindung == true){
+            econ.depositPlayer(player.getKiller(), money);
+            player.getKiller().sendMessage("Deinem Konto wurden Ð"+Double.toString(money)+" hinzugefügt");
+            event.setDroppedExp(event.getDroppedExp()+470);
+        }
+
+        }
 
     @EventHandler
     public void onAnvilPrepare(PrepareAnvilEvent event){
-        //Wenn Item mit Verzauberung 2. Item ist, wird auf Result nicht Lore übertragen
-        ItemStack result = event.getResult();
-        ItemStack secondItem = event.getInventory().getSecondItem();
 
-        if(result==null){return;}
-        ItemMeta meta = result.getItemMeta();
-        if(meta==null){return;}
-        if(meta.hasLore() && meta.lore().toString().contains("Seelenbindung"))
-        {event.getResult().addUnsafeEnchantment(LyriaSeelenbindung.seelenbindung, 1);}
-        else if (secondItem!=null && secondItem.getItemMeta()!=null && secondItem.getItemMeta().hasLore() && secondItem.getItemMeta().lore().toString().contains("Seelenbindung")) {
-            seelenbindungCommand.addSeelenbindung(event.getResult());
+        ItemStack secondItem = event.getInventory().getSecondItem();
+        ItemStack firstItem = event.getInventory().getFirstItem();
+        ItemStack result = event.getResult();
+        Integer levelFirstItem = null;
+        Integer levelSecondItem = null;
+
+        if(secondItem==null || firstItem==null){return;}
+        if(firstItem.getItemMeta().hasEnchant(LyriaSeelenbindung.seelenbindung)) {
+            levelFirstItem = firstItem.getItemMeta().getEnchantLevel(LyriaSeelenbindung.seelenbindung);
         }
+
+        if(secondItem.getItemMeta().hasEnchant(LyriaSeelenbindung.seelenbindung)) {
+            levelSecondItem = secondItem.getItemMeta().getEnchantLevel(LyriaSeelenbindung.seelenbindung);
+        }
+        if(levelFirstItem==null && levelSecondItem==null && levelFirstItem<4){return;}
+        if(firstItem.getType()==secondItem.getType() && result==null){
+            event.setResult(firstItem.clone());
+            result = event.getResult();
+        }
+        if(Objects.equals(levelFirstItem, levelSecondItem)){
+          SeelenbindungCommand.removeSeelenbindung(result);
+          SeelenbindungCommand.addSeelenbindung(result, levelFirstItem+1);
+        }
+        else{
+            SeelenbindungCommand.removeSeelenbindung(result);
+            SeelenbindungCommand.addSeelenbindung(result, Math.max(levelFirstItem, levelSecondItem));
+        }
+
     }
 
     @EventHandler
@@ -83,7 +109,7 @@ public class Seelenbindung extends Enchantment implements Listener {
         if(meta==null){return;}
         if(meta.hasLore() && meta.lore().toString().contains("Seelenbindung"))
         {   System.out.println("Grindstone");
-            seelenbindungCommand.removeSeelenbindung(result);}
+            SeelenbindungCommand.removeSeelenbindung(result);}
     }
     @EventHandler
     public void onGrindstoneGrind(InventoryClickEvent event){

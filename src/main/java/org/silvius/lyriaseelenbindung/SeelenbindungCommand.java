@@ -1,13 +1,11 @@
 package org.silvius.lyriaseelenbindung;
 
 import org.bukkit.ChatColor;
-import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.enchantments.EnchantmentTarget;
-import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -18,12 +16,12 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.List;
 
-public class seelenbindungCommand implements CommandExecutor {
-    public static void addSeelenbindung(ItemStack item){
-        item.addUnsafeEnchantment(LyriaSeelenbindung.seelenbindung, 3);
+public class SeelenbindungCommand implements CommandExecutor {
+    public static void addSeelenbindung(ItemStack item, Integer level){
+        item.addUnsafeEnchantment(LyriaSeelenbindung.seelenbindung, level);
         ItemMeta meta = item.getItemMeta();
         List<String> lore = new ArrayList<String>();
-        lore.add(ChatColor.GRAY + "Seelenbindung III");
+        lore.add(ChatColor.GRAY + "Seelenbindung "+"I".repeat(level));
         if (meta.hasLore()) {
             for (String l : meta.getLore()){
                 lore.add(l);
@@ -102,8 +100,23 @@ public class seelenbindungCommand implements CommandExecutor {
                 commandSender.sendMessage(ChatColor.RED+"Seelenbindung schon vorhanden");
                 return true;
             }
+            if(strings.length==0){
+                commandSender.sendMessage(ChatColor.RED+"Bitte Level angeben");
+                return true;
+            }
+            if(strings.length==2){
+                commandSender.sendMessage(ChatColor.RED+"Zu viele Argumente");
+                return true;
+            }
+            ArrayList<String> validLevels= new ArrayList<String>();
+            validLevels.add("1");
+            validLevels.add("2");
+            validLevels.add("3");
+            if(!validLevels.contains(strings[0])){
+                return true;
+            }
 
-            addSeelenbindung(item);
+            addSeelenbindung(item, Integer.valueOf(strings[0]));
 
         }
         return true;

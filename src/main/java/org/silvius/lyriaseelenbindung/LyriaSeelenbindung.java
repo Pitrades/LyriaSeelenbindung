@@ -1,6 +1,5 @@
 package org.silvius.lyriaseelenbindung;
 
-import net.kyori.adventure.text.SelectorComponent;
 import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 import net.milkbowl.vault.chat.Chat;
 import net.milkbowl.vault.economy.Economy;
@@ -33,7 +32,7 @@ public final class LyriaSeelenbindung extends JavaPlugin implements @NotNull Lis
 
     @Override
     public void onEnable() {
-        getCommand("seelenbindung").setExecutor(new seelenbindungCommand());
+        getCommand("seelenbindung").setExecutor(new SeelenbindungCommand());
         this.getServer().getPluginManager().registerEvents(this, this);
 
         plugin = this;
