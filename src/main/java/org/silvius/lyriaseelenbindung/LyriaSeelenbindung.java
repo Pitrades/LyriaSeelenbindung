@@ -7,12 +7,15 @@ import net.milkbowl.vault.economy.Economy;
 import net.milkbowl.vault.permission.Permission;
 import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
+import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
+
+import java.io.ObjectInputFilter;
 import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Set;
@@ -47,7 +50,8 @@ public final class LyriaSeelenbindung extends JavaPlugin implements @NotNull Lis
             return;
         }
         setupPermissions();
-        //setupChat();
+        getConfig().options().copyDefaults();
+        saveDefaultConfig();
 
     }
 
@@ -131,6 +135,5 @@ public final class LyriaSeelenbindung extends JavaPlugin implements @NotNull Lis
     public static Chat getChat() {
         return chat;
     }
-
 
 }

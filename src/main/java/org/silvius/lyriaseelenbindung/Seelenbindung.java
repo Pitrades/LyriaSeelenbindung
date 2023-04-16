@@ -9,6 +9,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.enchantments.EnchantmentTarget;
 import org.bukkit.entity.*;
@@ -36,7 +37,7 @@ import java.util.*;
 public class Seelenbindung extends Enchantment implements Listener {
 
 
-    final double money = 100d;
+    FileConfiguration config;
 
     @EventHandler
     public void onPlayerDeath(PlayerDeathEvent event){
@@ -57,7 +58,7 @@ public class Seelenbindung extends Enchantment implements Listener {
                 }
                 if (item.getItemMeta() instanceof Damageable) {
                     final ItemMeta meta = item.getItemMeta();
-                    ((Damageable) meta).setDamage((int) Math.round(item.getType().getMaxDurability() * 0.2));
+                    ((Damageable) meta).setDamage((int) Math.round(item.getType().getMaxDurability() * config.getDouble("durabilityLoss")));
                     item.setItemMeta(meta);
                 }
                 event.getItemsToKeep().add(item);
@@ -69,7 +70,7 @@ public class Seelenbindung extends Enchantment implements Listener {
         //Falls der Spieler Seelenbindung hatte und von einem Spieler getötet wurde: erhält Geld, xp
         if(hadSeelenbindung){
             ItemStack itemToDrop = new ItemStack(Material.EMERALD);
-            double amount = money;
+            double amount = config.getDouble("droppedMoneyOnDeath");
             Location location = event.getPlayer().getLocation();
             Entity entity = event.getEntity();
             int numberOfDrops = 1;
@@ -83,7 +84,7 @@ public class Seelenbindung extends Enchantment implements Listener {
             numberOfDrops = dropMoneyEvent.getNumberOfDrops();
             DropsManager dropsManager = MoneyFromMobs.getInstance().getDropsManager();
             dropsManager.dropItem(itemToDrop, amount, location, numberOfDrops, killer);
-            event.setDroppedExp(event.getDroppedExp()+300);
+            event.setDroppedExp(event.getDroppedExp()+config.getInt("droppedExpOnDeath"));
         }
 
         }
@@ -158,7 +159,7 @@ public class Seelenbindung extends Enchantment implements Listener {
     }
     public Seelenbindung(String namespace){
         super(new NamespacedKey(LyriaSeelenbindung.getPlugin(), namespace));
-
+        config = LyriaSeelenbindung.getPlugin().getConfig();
     }
 
 
