@@ -7,4 +7,7 @@ commands:
     usage: /seelenbindung
     aliases: []
     description: gives an item with seelenbindung
-
+    permission: lyriaseelenbindung.seelenbindung
+permissions:
+  lyriaseelenbindung.seelenbindung:
+    description: allows player to use /seelenbindung

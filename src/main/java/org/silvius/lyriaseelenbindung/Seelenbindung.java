@@ -1,8 +1,13 @@
 package org.silvius.lyriaseelenbindung;
 
+
 import com.destroystokyo.paper.event.inventory.PrepareResultEvent;
 import io.papermc.paper.enchantments.EnchantmentRarity;
+import me.chocolf.moneyfrommobs.api.event.DropMoneyEvent;
 import net.kyori.adventure.text.Component;
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.enchantments.EnchantmentTarget;
@@ -21,35 +26,38 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
+import me.chocolf.moneyfrommobs.MoneyFromMobs;
+import me.chocolf.moneyfrommobs.manager.DropsManager;
+
+
 
 import java.util.*;
 
-import static org.silvius.lyriaseelenbindung.LyriaSeelenbindung.econ;
-
 public class Seelenbindung extends Enchantment implements Listener {
-    double money = 100d;
+
+
+    final double money = 100d;
 
     @EventHandler
     public void onPlayerDeath(PlayerDeathEvent event){
-        Player player = event.getPlayer();
+        final Player player = event.getPlayer();
         Player killer = null;
-        List<ItemStack> droppedItems = event.getDrops();
-        Collection<ItemStack> itemsToRemove = new java.util.ArrayList<>(Collections.emptyList());
+        final List<ItemStack> droppedItems = event.getDrops();
+        final Collection<ItemStack> itemsToRemove = new java.util.ArrayList<>(Collections.emptyList());
         boolean hadSeelenbindung = false;
         if (player.getLastDamageCause() instanceof EntityDamageByEntityEvent) {
             EntityDamageByEntityEvent dmgEvent = (EntityDamageByEntityEvent) player.getLastDamageCause();
             if (dmgEvent.getDamager() instanceof Player) {
                 killer = (Player) dmgEvent.getDamager();}
         }
-        for (int i=0; i<droppedItems.size(); i++){
-            ItemStack item = droppedItems.get(i);
-            if(item!=null && item.getItemMeta().hasEnchant(this)){
-                if(killer!=null) {
+        for (ItemStack item : droppedItems) {
+            if (item != null && item.getItemMeta().hasEnchant(this)) {
+                if (killer != null) {
                     hadSeelenbindung = true;
                 }
-                if(item.getItemMeta() instanceof Damageable){
-                    ItemMeta meta = item.getItemMeta();
-                    ((Damageable) meta).setDamage((int) Math.round(item.getType().getMaxDurability()*0.1));
+                if (item.getItemMeta() instanceof Damageable) {
+                    final ItemMeta meta = item.getItemMeta();
+                    ((Damageable) meta).setDamage((int) Math.round(item.getType().getMaxDurability() * 0.2));
                     item.setItemMeta(meta);
                 }
                 event.getItemsToKeep().add(item);
@@ -59,10 +67,23 @@ public class Seelenbindung extends Enchantment implements Listener {
         }
         droppedItems.removeAll(itemsToRemove);
         //Falls der Spieler Seelenbindung hatte und von einem Spieler getötet wurde: erhält Geld, xp
-        if(hadSeelenbindung == true){
-            econ.depositPlayer(player.getKiller(), money);
-            player.getKiller().sendMessage("Deinem Konto wurden Ð"+Double.toString(money)+" hinzugefügt");
-            event.setDroppedExp(event.getDroppedExp()+470);
+        if(hadSeelenbindung){
+            ItemStack itemToDrop = new ItemStack(Material.EMERALD);
+            double amount = money;
+            Location location = event.getPlayer().getLocation();
+            Entity entity = event.getEntity();
+            int numberOfDrops = 1;
+            DropMoneyEvent dropMoneyEvent = new DropMoneyEvent(itemToDrop,amount, location, killer, entity, numberOfDrops);
+            Bukkit.getPluginManager().callEvent(dropMoneyEvent);
+            if (dropMoneyEvent.isCancelled())
+                return;
+            itemToDrop = dropMoneyEvent.getItemToDrop();
+            amount = dropMoneyEvent.getAmount();
+            location = dropMoneyEvent.getLocation();
+            numberOfDrops = dropMoneyEvent.getNumberOfDrops();
+            DropsManager dropsManager = MoneyFromMobs.getInstance().getDropsManager();
+            dropsManager.dropItem(itemToDrop, amount, location, numberOfDrops, killer);
+            event.setDroppedExp(event.getDroppedExp()+300);
         }
 
         }
@@ -70,8 +91,8 @@ public class Seelenbindung extends Enchantment implements Listener {
     @EventHandler
     public void onAnvilPrepare(PrepareAnvilEvent event){
 
-        ItemStack secondItem = event.getInventory().getSecondItem();
-        ItemStack firstItem = event.getInventory().getFirstItem();
+        final ItemStack secondItem = event.getInventory().getSecondItem();
+        final ItemStack firstItem = event.getInventory().getFirstItem();
         ItemStack result = event.getResult();
         Integer levelFirstItem = null;
         Integer levelSecondItem = null;
@@ -84,28 +105,33 @@ public class Seelenbindung extends Enchantment implements Listener {
         if(secondItem.getItemMeta().hasEnchant(LyriaSeelenbindung.seelenbindung)) {
             levelSecondItem = secondItem.getItemMeta().getEnchantLevel(LyriaSeelenbindung.seelenbindung);
         }
-        if(levelFirstItem==null && levelSecondItem==null && levelFirstItem<4){return;}
+        if(levelFirstItem==null && levelSecondItem==null){return;}
         if(firstItem.getType()==secondItem.getType() && result==null){
             event.setResult(firstItem.clone());
             result = event.getResult();
         }
+        if(result==null){return;}
         if(Objects.equals(levelFirstItem, levelSecondItem)){
           SeelenbindungCommand.removeSeelenbindung(result);
           SeelenbindungCommand.addSeelenbindung(result, levelFirstItem+1);
         }
+        SeelenbindungCommand.removeSeelenbindung(result);
+        if(levelSecondItem==null){
+            SeelenbindungCommand.addSeelenbindung(result, levelFirstItem);
+        }
         else{
-            SeelenbindungCommand.removeSeelenbindung(result);
             SeelenbindungCommand.addSeelenbindung(result, Math.max(levelFirstItem, levelSecondItem));
         }
+        event.setResult(result);
 
     }
 
     @EventHandler
     public void onGrindstonePrepare(PrepareResultEvent event){
         if(event.getInventory().getType()!=InventoryType.GRINDSTONE){return;}
-        ItemStack result = event.getResult();
+        final ItemStack result = event.getResult();
         if(result==null){return;}
-        ItemMeta meta = result.getItemMeta();
+        final ItemMeta meta = result.getItemMeta();
         if(meta==null){return;}
         if(meta.hasLore() && meta.lore().toString().contains("Seelenbindung"))
         {   System.out.println("Grindstone");
@@ -114,21 +140,20 @@ public class Seelenbindung extends Enchantment implements Listener {
     @EventHandler
     public void onGrindstoneGrind(InventoryClickEvent event){
         if(event.getInventory().getType()== InventoryType.GRINDSTONE){
-            ItemStack result = event.getCurrentItem();
+            final ItemStack result = event.getCurrentItem();
             if(result==null){return;}
-            ItemMeta meta = result.getItemMeta();
+            final ItemMeta meta = result.getItemMeta();
             if(meta==null){return;}
-            PersistentDataContainer data = meta.getPersistentDataContainer();
-            NamespacedKey namespacedKey = new NamespacedKey(LyriaSeelenbindung.getPlugin(), "hadSeelenbindung");
+            final PersistentDataContainer data = meta.getPersistentDataContainer();
+            final NamespacedKey namespacedKey = new NamespacedKey(LyriaSeelenbindung.getPlugin(), "hadSeelenbindung");
             if(data.has(namespacedKey) && data.get(namespacedKey, PersistentDataType.INTEGER)==1){
                 data.remove(namespacedKey);
                 result.setItemMeta(meta);
                 System.out.println("SA");
-                HumanEntity player = event.getWhoClicked();
-                ExperienceOrb orb = player.getWorld().spawn(event.getInventory().getLocation(), ExperienceOrb.class);
-                orb.setExperience(10);
+                final HumanEntity player = event.getWhoClicked();
+                final ExperienceOrb orb = player.getWorld().spawn(Objects.requireNonNull(event.getInventory().getLocation()), ExperienceOrb.class);
+                orb.setExperience(10*meta.getEnchantLevel(LyriaSeelenbindung.seelenbindung));
             }
-
         }
     }
     public Seelenbindung(String namespace){

@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="LyriaSeelenbindung:jar">
+    <output-path>$USER_HOME$/Desktop/server/plugins</output-path>
+    <root id="archive" name="LyriaSeelenbindung.jar">
+      <element id="module-output" name="LyriaSeelenbindung" />
+    </root>
+  </artifact>
+</component>

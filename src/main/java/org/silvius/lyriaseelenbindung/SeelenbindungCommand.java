@@ -1,5 +1,6 @@
 package org.silvius.lyriaseelenbindung;
 
+import net.kyori.adventure.text.Component;
 import org.bukkit.ChatColor;
 import org.bukkit.NamespacedKey;
 import org.bukkit.command.Command;
@@ -15,38 +16,37 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class SeelenbindungCommand implements CommandExecutor {
     public static void addSeelenbindung(ItemStack item, Integer level){
         item.addUnsafeEnchantment(LyriaSeelenbindung.seelenbindung, level);
-        ItemMeta meta = item.getItemMeta();
-        List<String> lore = new ArrayList<String>();
-        lore.add(ChatColor.GRAY + "Seelenbindung "+"I".repeat(level));
+        final ItemMeta meta = item.getItemMeta();
+        final List<Component> lore = new ArrayList<>();
+        lore.add(Component.text(ChatColor.GRAY + "Seelenbindung "+"I".repeat(level)));
         if (meta.hasLore()) {
-            for (String l : meta.getLore()){
-                lore.add(l);
-            }
+            lore.addAll(meta.lore());
         }
-        meta.setLore(lore);
+        meta.lore(lore);
         item.setItemMeta(meta);
     }
 
 
     public static void lowerSeelenbindungLevel(ItemStack item){
 
-        ItemMeta meta = item.getItemMeta();
-        Integer enchantmentLevel = meta.getEnchantLevel(LyriaSeelenbindung.seelenbindung);
+        final ItemMeta meta = item.getItemMeta();
+        final int enchantmentLevel = meta.getEnchantLevel(LyriaSeelenbindung.seelenbindung);
         meta.removeEnchant(LyriaSeelenbindung.seelenbindung);
-        List<String> lore = new ArrayList<String>();
+        final List<Component> lore = new ArrayList<>();
         if (meta.hasLore()) {
-            for (String l : meta.getLore()){
+            for (Component l : Objects.requireNonNull(meta.lore())){
                 if(!l.toString().contains("Seelenbindung")){
                     lore.add(l);}
                 else {
                     if(enchantmentLevel==2){
-                        lore.add(ChatColor.GRAY + "Seelenbindung I");
+                        lore.add(Component.text(ChatColor.GRAY + "Seelenbindung I"));
                     } else if (enchantmentLevel==3) {
-                        lore.add(ChatColor.GRAY + "Seelenbindung II");
+                        lore.add(Component.text(ChatColor.GRAY + "Seelenbindung II"));
                     }
                 }
             }
@@ -55,44 +55,44 @@ public class SeelenbindungCommand implements CommandExecutor {
             item.addUnsafeEnchantment(LyriaSeelenbindung.seelenbindung, enchantmentLevel-1);
             meta.addEnchant(LyriaSeelenbindung.seelenbindung, enchantmentLevel-1, true);}
 
-        meta.setLore(lore);
+        meta.lore(lore);
         item.setItemMeta(meta);
     }
 
     public static void removeSeelenbindung(ItemStack item){
-        ItemMeta meta = item.getItemMeta();
+        final ItemMeta meta = item.getItemMeta();
         meta.removeEnchant(LyriaSeelenbindung.seelenbindung);
-        List<String> lore = new ArrayList<String>();
+        final List<Component> lore = new ArrayList<>();
         if (meta.hasLore()) {
-            for (String l : meta.getLore()){
+            for (Component l : Objects.requireNonNull(meta.lore())){
                 if(!l.toString().contains("Seelenbindung")){
                     lore.add(l);}
             }
         }
 
 
-        meta.setLore(lore);
+        meta.lore(lore);
 
-        PersistentDataContainer data = meta.getPersistentDataContainer();
-        NamespacedKey namespacedKey = new NamespacedKey(LyriaSeelenbindung.getPlugin(), "hadSeelenbindung");
+        final PersistentDataContainer data = meta.getPersistentDataContainer();
+        final NamespacedKey namespacedKey = new NamespacedKey(LyriaSeelenbindung.getPlugin(), "hadSeelenbindung");
         data.set(namespacedKey, PersistentDataType.INTEGER, 1);
         item.setItemMeta(meta);
     }
 
     public static boolean isValidType(ItemStack item){
-        if( EnchantmentTarget.ALL.includes(item)){return true;}
-        return false;
+        return EnchantmentTarget.ALL.includes(item);
     }
     @Override
     public boolean onCommand(@NotNull CommandSender commandSender, @NotNull Command command, @NotNull String s, @NotNull String[] strings) {
         if (commandSender instanceof Player) {
-            Player player = ((Player) commandSender).getPlayer();
+            final Player player = ((Player) commandSender).getPlayer();
+            assert player != null;
             if(!player.hasPermission("lyriaseelenbindung.seelenbindung")){
                 commandSender.sendMessage(ChatColor.RED+"Keine Berechtigung");
                 return true;
             }
-            ItemStack item = player.getInventory().getItemInMainHand();
-            if(item==null | !isValidType(item)){
+            final ItemStack item = player.getInventory().getItemInMainHand();
+            if(!isValidType(item)){
                 commandSender.sendMessage(ChatColor.RED+"Verzauberung kann nicht gesetzt werden");
                 return true;
             }
@@ -108,7 +108,7 @@ public class SeelenbindungCommand implements CommandExecutor {
                 commandSender.sendMessage(ChatColor.RED+"Zu viele Argumente");
                 return true;
             }
-            ArrayList<String> validLevels= new ArrayList<String>();
+            ArrayList<String> validLevels= new ArrayList<>();
             validLevels.add("1");
             validLevels.add("2");
             validLevels.add("3");

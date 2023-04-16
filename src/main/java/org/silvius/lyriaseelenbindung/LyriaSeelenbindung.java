@@ -1,5 +1,6 @@
 package org.silvius.lyriaseelenbindung;
 
+
 import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 import net.milkbowl.vault.chat.Chat;
 import net.milkbowl.vault.economy.Economy;
@@ -12,9 +13,9 @@ import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
-
 import java.lang.reflect.Field;
 import java.util.HashMap;
+import java.util.Set;
 import java.util.logging.Logger;
 
 public final class LyriaSeelenbindung extends JavaPlugin implements @NotNull Listener {
@@ -40,7 +41,7 @@ public final class LyriaSeelenbindung extends JavaPlugin implements @NotNull Lis
         registerEnchantment(seelenbindung);
         PluginManager pluginManager = Bukkit.getPluginManager();
         pluginManager.registerEvents(new Seelenbindung("seelenbindung"), this);
-        if (!setupEconomy() ) {
+        if (!setupEconomy()) {
             log.severe(String.format("[%s] - Disabled due to no Vault dependency found!", getDescription().getName()));
             getServer().getPluginManager().disablePlugin(this);
             return;
